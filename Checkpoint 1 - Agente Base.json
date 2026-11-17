@@ -1,0 +1,285 @@
+{
+  "name": "Checkpoint 1 - Agente Base",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca38dec6-01a4-49fd-a5a5-41523a54f59f",
+      "name": "When chat message received",
+      "webhookId": "3c4b3c62-2e43-456b-94db-643c1dedee16"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# ROL\nSos \"LeadBot\", asistente de calificación de leads de [Nombre de tu empresa/proyecto].\n\n# ÁMBITO\nAtendés a personas que consultan por nuestros servicios. Solo calificás leads y registrás sus datos. No resolvés soporte técnico ni temas de facturación.\n\n# OBJETIVO\nObtener y registrar: nombre, email, empresa, necesidad principal y presupuesto aproximado. Clasificá el lead como CALIENTE (necesidad clara + presupuesto + urgencia), TIBIO o FRÍO.\n\n# REGLAS\n1. Preguntá de a un dato por vez, con tono cordial y profesional.\n2. Cuando tengas nombre, email y necesidad, usá la herramienta de registro. Una sola vez por lead.\n3. Nunca inventes datos que el usuario no dio.\n4. Respondé siempre en español.\n\n# LÍMITES (lo que NO podés hacer)\n- No das precios cerrados, descuentos ni promesas contractuales.\n- No compartís datos de otros leads.\n- No ejecutás acciones fuera del registro del lead.\n\n# ESCALAMIENTO\nSi el usuario pide hablar con una persona, se queja, o la consulta está fuera de tu ámbito, respondé que un humano lo contactará y no uses la herramienta.",
+          "maxIterations": 6,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        384,
+        0
+      ],
+      "id": "3a0e2caa-219d-4502-b5d5-fd97df849e55",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        208
+      ],
+      "id": "8089c5bf-84c8-4527-9d34-f154616ba0ab",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8p2KH0IlNtLALLxP",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        208
+      ],
+      "id": "28a08fac-9842-4796-bc61-f9f0401fdb6a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Registra un lead calificado en la planilla de leads de la empresa. \nUSALA cuando el usuario ya haya proporcionado, como mínimo, su nombre, su email y la necesidad que quiere resolver, y haya mostrado interés comercial real en contratar o cotizar un servicio. \nCompletá la clasificación (CALIENTE, TIBIO o FRÍO) según urgencia y presupuesto mencionados. \nNO la uses si faltan nombre o email, si el usuario solo hace una pregunta general, si pide soporte o hablar con un humano, ni si el lead ya fue registrado en esta conversación. \nDevuelve la fila registrada como confirmación.",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1TGYrJEdoUQl5ls6_oVSV0vRqJ6RUwJ8JXx3X2Yah190/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TGYrJEdoUQl5ls6_oVSV0vRqJ6RUwJ8JXx3X2Yah190/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nombre": "={{ $fromAI('Nombre', `Nombre completo del lead`, 'string') }}",
+            "Email": "={{ $fromAI('Email', `Email del lead`, 'string') }}",
+            "Empresa": "={{ $fromAI('Empresa', `Empresa del lead (vacío si no la dio)`, 'string') }}",
+            "Necesidad": "={{ $fromAI('Necesidad', `Necesidad principal del lead`, 'string') }}",
+            "Presupuesto": "={{ $fromAI('Presupuesto', `Presupuesto aproximado (vacío si no lo dio)`, 'string') }}",
+            "Clasificacion": "={{ $fromAI('Clasificacion', `CALIENTE, TIBIO o FRIO`, 'string') }}",
+            "Fecha": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Empresa",
+              "displayName": "Empresa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Necesidad",
+              "displayName": "Necesidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Presupuesto",
+              "displayName": "Presupuesto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Clasificacion",
+              "displayName": "Clasificacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        208
+      ],
+      "id": "ac3e6a9f-8be4-424c-874f-32809b52242f",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "8DGjRDJt3oGslOa5",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "rodrigogf03@gmail.com",
+        "subject": "Log del agente",
+        "emailType": "text",
+        "message": "=🤖 *Reporte automático del agente* *Mensaje del usuario:* {{ $('When chat message received').item.json.chatInput }} *Respuesta del agente:* {{ $json.output }} *Herramientas usadas:* {{ $json.intermediateSteps ? $json.intermediateSteps.map(s => s.action.tool).join(', ') : 'Ninguna' }} *Detalle:* {{ JSON.stringify($json.intermediateSteps || []) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        0
+      ],
+      "id": "f19a56bf-d9b6-4b79-93cf-773d9c5edd48",
+      "name": "Send a message",
+      "webhookId": "aa40d76c-4786-496c-89d2-07b596d9cea5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zJBsPVskyK2LWi0G",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "41a176fe-bea3-4135-9587-0f14cc18a6a1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "555b6ae24db72f44710b22a0daccd1dfc3ed1d17a530ddb82a61895db6c9a2b5"
+  },
+  "nodeGroups": [],
+  "id": "3KywDw0Vz5sc3L4A",
+  "tags": []
+}
